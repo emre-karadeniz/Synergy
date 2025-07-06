@@ -4,7 +4,7 @@ public enum LogType
 {
     Auth,
     Error,
-    Performance,
+    Perf,
     Audit,
     Request,
     RateLimiting

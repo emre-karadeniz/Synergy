@@ -1,6 +1,6 @@
 ﻿namespace Synergy.Framework.Logging.Enums;
 
-public enum DbType
+public enum LogDbType
 {
     SqlServer,
     Elasticsearch

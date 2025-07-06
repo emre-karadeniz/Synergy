@@ -21,6 +21,8 @@ namespace Synergy.Sample.Api.Controllers
         [HttpGet(Name = "GetWeatherForecast")]
         public IEnumerable<WeatherForecast> Get()
         {
+            //System.Threading.Thread.Sleep(4000);
+            int.Parse("fgh");
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
                 Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
