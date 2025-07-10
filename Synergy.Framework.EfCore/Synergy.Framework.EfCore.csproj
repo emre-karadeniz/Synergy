@@ -6,4 +6,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.7" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Synergy.Framework.Domain\Synergy.Framework.Domain.csproj" />
+    <ProjectReference Include="..\Synergy.Framework.Shared\Synergy.Framework.Shared.csproj" />
+  </ItemGroup>
+
 </Project>

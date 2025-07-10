@@ -6,4 +6,18 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Synergy.Framework.Domain\Synergy.Framework.Domain.csproj" />
+    <ProjectReference Include="..\Synergy.Framework.Shared\Synergy.Framework.Shared.csproj" />
+  </ItemGroup>
+
 </Project>
