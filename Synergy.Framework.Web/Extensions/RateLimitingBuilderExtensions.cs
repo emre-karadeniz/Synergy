@@ -198,3 +198,29 @@ public static class RateLimitingBuilderExtensions
         return QueueProcessingOrder.OldestFirst; // Varsayılan
     }
 }
+
+//builder.AddSynergyWeb(options =>
+//{
+//    options.EnableRateLimiting = true;
+//    options.RateLimitingOptions = rateOpt =>
+//    {
+//        rateOpt.EnableGlobalLimiting = true;
+//        rateOpt.GlobalPolicyName = "GlobalFixedWindowPolicy"; // veya "GlobalSlidingWindowPolicy", "GlobalTokenBucketPolicy", "GlobalConcurrencyPolicy"
+//        rateOpt.GlobalFixedWindowOptions.PermitLimit = 100;
+//        rateOpt.GlobalFixedWindowOptions.WindowSeconds = 60;
+//        // Diğer ayarlar...
+
+//rateOpt.EndpointPolicies.Add("/api/special", new EndpointRateLimiterOptions
+//        {
+//            LimiterType = "FixedWindow",
+//            FixedWindowOptions = new FixedWindowLimiterOptions
+//            {
+//                PermitLimit = 5,
+//                WindowSeconds = 10
+//            }
+//        });
+
+//    };
+//});
+
+//app.UseSynergyWebMiddlewares();

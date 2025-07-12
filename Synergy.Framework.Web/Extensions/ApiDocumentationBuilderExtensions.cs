@@ -168,7 +168,7 @@ public static class ApiDocumentationBuilderExtensions
 
                     options.Authentication = new ScalarAuthenticationOptions
                     {
-                        PreferredSecurityScheme = docOptions.Scalar.PreferredSecurityScheme
+                        PreferredSecuritySchemes = new[] { docOptions.Scalar.PreferredSecurityScheme }
                     };
 
                     // Scalar'ın kendi route prefix'i yok, OpenAPI endpoint'ini kullanır

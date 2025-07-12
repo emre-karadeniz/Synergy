@@ -29,6 +29,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synergy.Sample.Api", "Syner
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synergy.Framework.Logging", "Synergy.Framework.Logging\Synergy.Framework.Logging.csproj", "{22CBBDDC-6E12-403D-820A-D2A252502DA2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synergy.Framework.Mail", "Synergy.Framework.Mail\Synergy.Framework.Mail.csproj", "{E6F5AC8A-A66F-4B99-9FAC-379A7E8093CE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Synergy.Framework.SMS", "Synergy.Framework.SMS\Synergy.Framework.SMS.csproj", "{5C94BE5E-FF0A-4E51-A360-263C9CCB20B3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -79,6 +83,14 @@ Global
 		{22CBBDDC-6E12-403D-820A-D2A252502DA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{22CBBDDC-6E12-403D-820A-D2A252502DA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{22CBBDDC-6E12-403D-820A-D2A252502DA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6F5AC8A-A66F-4B99-9FAC-379A7E8093CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6F5AC8A-A66F-4B99-9FAC-379A7E8093CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6F5AC8A-A66F-4B99-9FAC-379A7E8093CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6F5AC8A-A66F-4B99-9FAC-379A7E8093CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C94BE5E-FF0A-4E51-A360-263C9CCB20B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C94BE5E-FF0A-4E51-A360-263C9CCB20B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C94BE5E-FF0A-4E51-A360-263C9CCB20B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C94BE5E-FF0A-4E51-A360-263C9CCB20B3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,6 +107,8 @@ Global
 		{D3CF1BB6-42C4-4CF6-BBB0-779754922EB2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{9A90D680-F11C-4AC3-98CA-CD70AE941C8F} = {6DD69298-A350-4BB3-AA13-3428161CB160}
 		{22CBBDDC-6E12-403D-820A-D2A252502DA2} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{E6F5AC8A-A66F-4B99-9FAC-379A7E8093CE} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{5C94BE5E-FF0A-4E51-A360-263C9CCB20B3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {880F20E6-6885-499D-BAD1-D1AA5B2324BF}
