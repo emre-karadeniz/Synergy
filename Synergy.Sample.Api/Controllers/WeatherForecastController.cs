@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Synergy.Sample.Api.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class WeatherForecastController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
@@ -30,6 +31,18 @@ namespace Synergy.Sample.Api.Controllers
                 Summary = Summaries[Random.Shared.Next(Summaries.Length)]
             })
             .ToArray();
+        }
+
+        [HttpPost]
+        public IActionResult Test([FromBody]TestModel testModel)
+        {
+            return Ok("baþarýlý");
+        }
+
+        public class TestModel
+        {
+            public string? Name { get; set; }
+            public int Age { get; set; }
         }
     }
 }

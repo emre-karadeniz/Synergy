@@ -1,19 +1,19 @@
 using Synergy.Framework.Logging.Extensions;
+using Synergy.Framework.Web.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-builder.Services.AddSwaggerGen();
 
 builder.UseSynergyLogging(options =>
 {
     options.ConnectionStringName = "SynergyLogDbConnection";
     //options.ExcludeExceptionTypes= new List<string> { "FormatException" };
 });
+
+builder.UseSynergyWeb();
 
 var app = builder.Build();
 
@@ -26,8 +26,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseSynergyLoggingMiddlewares();
+app.UseSynergyWebMiddlewares();
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

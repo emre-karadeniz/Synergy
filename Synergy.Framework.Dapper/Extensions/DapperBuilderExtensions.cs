@@ -35,6 +35,12 @@ public static class DapperBuilderExtensions
         //builder.Services.TryAddScoped<IAuditLogHandler, DefaultAuditLogHandler>();
         return builder;
     }
+
+    public static IApplicationBuilder UseSynergyDapperMiddlewares(this IApplicationBuilder app)
+    {
+
+        return app;
+    }
 }
 
 //builder.UseSynergyDapper(opt =>

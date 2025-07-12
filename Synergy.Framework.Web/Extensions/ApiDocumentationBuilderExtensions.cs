@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
 using Synergy.Framework.Web.Configurations;
@@ -23,6 +24,7 @@ public static class ApiDocumentationBuilderExtensions
     {
         var docOptions = new SwaggerDocOptions();
         configureOptions?.Invoke(docOptions);
+        builder.Services.AddSingleton(docOptions);
 
         builder.Services.AddEndpointsApiExplorer(); // Hem Swagger hem Scalar için gerekli
 
@@ -101,9 +103,11 @@ public static class ApiDocumentationBuilderExtensions
     /// </summary>
     public static WebApplication UseSynergyApiDocumentation(this WebApplication app)
     {
-        var docOptions = app.Configuration
-            .GetSection(SwaggerDocOptions.ConfigurationSectionName)
-            .Get<SwaggerDocOptions>();
+        //var docOptions = app.Configuration
+        //    .GetSection(SwaggerDocOptions.ConfigurationSectionName)
+        //    .Get<SwaggerDocOptions>();
+        var docOptions = app.Services.GetService<IOptions<SwaggerDocOptions>>()?.Value;
+        //var docOptions = app.ApplicationServices.GetRequiredService<SwaggerDocOptions>();
 
         if (docOptions == null)
         {

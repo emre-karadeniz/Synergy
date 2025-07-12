@@ -12,7 +12,7 @@ public class SwaggerDocOptions
     public string Description { get; set; } = "API Documentation";
     public string RoutePrefix { get; set; } = "swagger"; // Hem Swagger hem de Scalar için varsayılan prefix
     public bool EnableSwagger { get; set; } = true; // Swagger'ı etkinleştir
-    public bool EnableScalar { get; set; } = false; // Scalar'ı etkinleştir (Varsayılan olarak kapalı, çakışma olmasın diye)
+    public bool EnableScalar { get; set; } = true; // Scalar'ı etkinleştir (Varsayılan olarak kapalı, çakışma olmasın diye)
     public bool IncludeXmlComments { get; set; } = true; // XML yorumlarını dahil et
 
     // Scalar'a özgü ayarlar
