@@ -2,9 +2,7 @@
 
 public class AuthModuleOptions
 {
-    public bool UseLdap { get; set; } = false;
     public LdapOptions? Ldap { get; set; }
-    public bool UseIdentity { get; set; } = true;
     public IdentityOptions? Identity { get; set; }
     public bool Enable2FA { get; set; } = false;
     public bool EnableCaptcha { get; set; } = false;
@@ -28,7 +26,14 @@ public class LdapOptions
 
 public class IdentityOptions
 {
-    public string ConnectionString { get; set; }
-    public string UserTableName { get; set; } = "AspNetUsers";
-    public List<string> ExtraUserFields { get; set; } = new();
+    public string ConnectionStringName { get; set; } = "DefaultConnection";
+}
+
+public class TokenOptions
+{
+    public string Audience { get; set; } = null!;
+    public string Issuer { get; set; } = null!;
+    public int AccessTokenExpiration { get; set; }
+    public int RefreshTokenExpiration { get; set; }
+    public string SigningKey { get; set; } = null!;
 }

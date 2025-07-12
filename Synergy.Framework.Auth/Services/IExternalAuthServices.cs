@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Synergy.Framework.Auth.Services;
 
 public interface IGoogleAuthService
@@ -13,6 +15,6 @@ public interface ISmsService
 
 public class GoogleUserInfo
 {
+    [JsonPropertyName("email")]
     public string Email { get; set; } = null!;
-    public string Name { get; set; } = null!;
 }

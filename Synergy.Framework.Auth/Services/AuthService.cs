@@ -44,20 +44,7 @@ public class AuthService : IAuthService
         _smsService = smsService;
     }
 
-    public async Task<AuthResult> LoginAsync(LoginRequest request)
-    {
-        if (_options.UseLdap)
-        {
-            return await LdapLoginAsync(new LdapLoginRequest { UserName = request.UserName, Password = request.Password, Captcha = request.Captcha, TwoFactorCode = request.TwoFactorCode });
-        }
-        else if (_options.UseIdentity)
-        {
-            return await IdentityLoginAsync(request);
-        }
-        return new AuthResult { Success = false, ErrorMessage = "No login method enabled." };
-    }
-
-    private async Task<AuthResult> IdentityLoginAsync(LoginRequest request)
+    public async Task<AuthResult> IdentityLoginAsync(LoginRequest request)
     {
         // Captcha kontrolü
         if (_options.EnableCaptcha && _captchaService != null)
@@ -189,13 +176,19 @@ public class AuthService : IAuthService
             return new AuthResult { Success = false, ErrorMessage = "Invalid Google access token." };
         }
 
-        var user = new SynergyIdentityUser
+        var user = await _userManager.FindByEmailAsync(userInfo.Email);
+        if (user != null)
+        {
+            return new AuthResult { Success = false, ErrorMessage = "Bu email ile sistemde kayýtlý bir kullanýcý zaten var." };
+        }
+
+        var newUser = new SynergyIdentityUser
         {
             UserName = userInfo.Email,
             Email = userInfo.Email
         };
 
-        var result = await _userManager.CreateAsync(user);
+        var result = await _userManager.CreateAsync(newUser);
         if (!result.Succeeded)
         {
             return new AuthResult { Success = false, ErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description)) };
@@ -255,5 +248,35 @@ public class AuthService : IAuthService
         var newRefreshToken = await _tokenService.GenerateRefreshTokenAsync(userId, ip);
         await _tokenService.SaveUserSessionAsync(userId, newAccessToken, newRefreshToken.Token, ip);
         return new AuthResult { Success = true, Token = newAccessToken, RefreshToken = newRefreshToken.Token };
+    }
+
+    public async Task<AuthResult> GoogleLoginAsync(string accessToken)
+    {
+        if (_googleAuthService == null)
+        {
+            return new AuthResult { Success = false, ErrorMessage = "GoogleAuthService is not configured." };
+        }
+
+        var userInfo = await _googleAuthService.GetUserInfoAsync(accessToken);
+        if (userInfo == null)
+        {
+            return new AuthResult { Success = false, ErrorMessage = "Invalid Google access token." };
+        }
+
+        var user = await _userManager.FindByEmailAsync(userInfo.Email);
+        if (user == null)
+        {
+            return new AuthResult { Success = false, ErrorMessage = "User not found. Please register first." };
+        }
+
+        // IP'yi context'ten al
+        var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var userId = user.Id;
+        var claims = new List<Claim> { new Claim(ClaimTypes.Name, user.UserName), new Claim(ClaimTypes.NameIdentifier, userId) };
+        var accessTokenJwt = _tokenService.GenerateToken(userId, claims);
+        var refreshToken = await _tokenService.GenerateRefreshTokenAsync(userId, ip);
+        await _tokenService.SaveUserSessionAsync(userId, accessTokenJwt, refreshToken.Token, ip);
+
+        return new AuthResult { Success = true, Token = accessTokenJwt, RefreshToken = refreshToken.Token };
     }
 }

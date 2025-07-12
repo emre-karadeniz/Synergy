@@ -34,6 +34,7 @@ namespace Synergy.Sample.Api.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public IActionResult Test([FromBody]TestModel testModel)
         {
             return Ok("baþarýlý");
