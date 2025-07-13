@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+ï»¿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Novell.Directory.Ldap;
 using Synergy.Framework.Auth.Configuration;
@@ -8,70 +8,34 @@ using Synergy.Framework.Auth.Models;
 
 namespace Synergy.Framework.Auth.Services;
 
-public class AuthService : IAuthService
+internal class LoginService : ILoginService
 {
     private readonly AuthModuleOptions _options;
     private readonly TokenService _tokenService;
-    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly UserManager<SynergyIdentityUser> _userManager;
     private readonly SignInManager<SynergyIdentityUser> _signInManager;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly I2FaService? _twoFaService;
     private readonly ICaptchaService? _captchaService;
     private readonly IGoogleAuthService? _googleAuthService;
-    private readonly ISmsService? _smsService;
 
-    public AuthService(
-        AuthModuleOptions options,
-        IHttpContextAccessor httpContextAccessor,
-        UserManager<SynergyIdentityUser> userManager,
-        SignInManager<SynergyIdentityUser> signInManager,
-        SynergyIdentityDbContext dbContext,
-        I2FaService? twoFaService = null,
-        ICaptchaService? captchaService = null,
-        IGoogleAuthService? googleAuthService = null,
-        ISmsService? smsService = null
-    )
+    public LoginService(AuthModuleOptions options, UserManager<SynergyIdentityUser> userManager, SignInManager<SynergyIdentityUser> signInManager, SynergyIdentityDbContext dbContext, IHttpContextAccessor httpContextAccessor, ICaptchaService? captchaService = null, I2FaService? twoFaService = null, IGoogleAuthService? googleAuthService = null)
     {
         _options = options;
         _tokenService = new TokenService(_options.TokenOptions, dbContext);
-        _httpContextAccessor = httpContextAccessor;
+        _captchaService = captchaService;
         _userManager = userManager;
         _signInManager = signInManager;
         _twoFaService = twoFaService;
-        _captchaService = captchaService;
+        _httpContextAccessor = httpContextAccessor;
         _googleAuthService = googleAuthService;
-        _smsService = smsService;
-    }
-
-    private string GetClientIpAddress(string? ipAddress = null)
-    {
-        if (!string.IsNullOrEmpty(ipAddress))
-        {
-            return ipAddress;
-        }
-
-        var httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null)
-        {
-            throw new InvalidOperationException("HttpContext is not available.");
-        }
-
-        // X-Forwarded-For kontrolü
-        var forwardedIp = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(forwardedIp))
-        {
-            return forwardedIp.Split(',').First().Trim();
-        }
-
-        // RemoteIpAddress kontrolü
-        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 
     public async Task<AuthResult> IdentityLoginAsync(LoginRequest request)
     {
         var ipAddress = GetClientIpAddress(request.IPAddress);
 
-        // Captcha kontrolü
+        // Captcha kontrolÃ¼
         if (_options.EnableCaptcha && _captchaService != null)
         {
             var captchaValid = await _captchaService.ValidateCaptchaAsync(request.Captcha);
@@ -91,13 +55,13 @@ public class AuthService : IAuthService
             return new AuthResult { Success = false, ErrorMessage = "Invalid username or password." };
         }
 
-        // Email doðrulama kontrolü
+        // Email doÄŸrulama kontrolÃ¼
         if (user.EmailConfirmed)
         {
             return new AuthResult { Success = false, ErrorMessage = "Email address is not confirmed." };
         }
 
-        // 2FA kontrolü aktif ise sms gönder ve token üretme
+        // 2FA kontrolÃ¼ aktif ise sms gÃ¶nder ve token Ã¼retme
         if (user.TwoFactorEnabled && _twoFaService != null)
         {
             if (string.IsNullOrEmpty(user.PhoneNumber))
@@ -109,7 +73,7 @@ public class AuthService : IAuthService
 
         var userId = user.Id;
 
-        // Baþarýlý ise access ve refresh token üret
+        // BaÅŸarÄ±lÄ± ise access ve refresh token Ã¼ret
         var accessToken = await _tokenService.GenerateTokenAsync(user, ipAddress);
 
         return new AuthResult { Success = true, Token = accessToken.Token, RefreshToken = accessToken.RefreshToken };
@@ -120,10 +84,10 @@ public class AuthService : IAuthService
         var ipAddress = GetClientIpAddress(request.IPAddress);
 
         if (_options.Ldap == null)
-            return new AuthResult { Success = false, ErrorMessage = "LDAP ayarlarý eksik." };
+            return new AuthResult { Success = false, ErrorMessage = "LDAP ayarlarÄ± eksik." };
         try
         {
-            // Captcha kontrolü
+            // Captcha kontrolÃ¼
             if (_options.EnableCaptcha && _captchaService != null)
             {
                 var captchaValid = await _captchaService.ValidateCaptchaAsync(request.Captcha);
@@ -135,7 +99,7 @@ public class AuthService : IAuthService
             await ldapConn.ConnectAsync(_options.Ldap.Server, _options.Ldap.Port);
             await ldapConn.BindAsync(_options.Ldap.BindDn, _options.Ldap.BindPassword);
 
-            // Kullanýcýyý bul ve doðrula
+            // KullanÄ±cÄ±yÄ± bul ve doÄŸrula
             var userDn = $"uid={request.UserName},{_options.Ldap.BaseDn}";
             await ldapConn.BindAsync(userDn, request.Password);
 
@@ -145,13 +109,13 @@ public class AuthService : IAuthService
                 return new AuthResult { Success = false, ErrorMessage = "Invalid username or password." };
             }
 
-            // Email doðrulama kontrolü
+            // Email doÄŸrulama kontrolÃ¼
             if (user.EmailConfirmed)
             {
                 return new AuthResult { Success = false, ErrorMessage = "Email address is not confirmed." };
             }
 
-            // 2FA kontrolü aktif ise sms gönder ve token üretme
+            // 2FA kontrolÃ¼ aktif ise sms gÃ¶nder ve token Ã¼retme
             if (user.TwoFactorEnabled && _twoFaService != null)
             {
                 if (string.IsNullOrEmpty(user.PhoneNumber))
@@ -161,9 +125,9 @@ public class AuthService : IAuthService
                 return new AuthResult { Success = true, MaskedPhone = MaskPhone(user.PhoneNumber) };
             }
 
-            var userId = request.UserName; // LDAP'da UserId olarak username kullanýyoruz
+            var userId = request.UserName; // LDAP'da UserId olarak username kullanÄ±yoruz
 
-            // Baþarýlý ise access ve refresh token üret
+            // BaÅŸarÄ±lÄ± ise access ve refresh token Ã¼ret
             var accessToken = await _tokenService.GenerateTokenAsync(user, ipAddress);
 
             return new AuthResult { Success = true, Token = accessToken.Token, RefreshToken = accessToken.RefreshToken };
@@ -205,27 +169,6 @@ public class AuthService : IAuthService
         return new AuthResult { Success = true, Token = accessTokenJwt.Token, RefreshToken = accessTokenJwt.RefreshToken };
     }
 
-    public async Task<AuthResult> VerifyTwoFactorAsync(string userName, string code, string ipAddress = null)
-    {
-        var ip = GetClientIpAddress(ipAddress);
-
-        var user = await _userManager.FindByNameAsync(userName);
-        if (user == null)
-        {
-            return new AuthResult { Success = false, ErrorMessage = "Kullanýcý bulunamadý." };
-        }
-
-        if (!await _twoFaService.Validate2FaAsync(user.PhoneNumber, code))
-        {
-            return new AuthResult { Success = false, ErrorMessage = "Geçersiz 2FA kodu." };
-        }
-
-        // Baþarýlý ise access ve refresh token üret
-        var accessToken = await _tokenService.GenerateTokenAsync(user, ip);
-
-        return new AuthResult { Success = true, Token = accessToken.Token, RefreshToken = accessToken.RefreshToken };
-    }
-
     public async Task<AuthResult> RefreshTokenAsync(string refreshToken, string ipAddress)
     {
         var ip = GetClientIpAddress(ipAddress);
@@ -243,96 +186,61 @@ public class AuthService : IAuthService
         var user = await _userManager.FindByIdAsync(tokenEntity.Id.ToString());
         if (user == null)
         {
-            return new AuthResult { Success = false, ErrorMessage = "Kullanýcý bulunamadý." };
+            return new AuthResult { Success = false, ErrorMessage = "KullanÄ±cÄ± bulunamadÄ±." };
         }
 
-        // Eski refresh token'ý iptal et
+        // Eski refresh token'Ä± iptal et
         await _tokenService.RevokeRefreshTokenAsync(refreshToken);
 
-        // Yeni access ve refresh token üret
+        // Yeni access ve refresh token Ã¼ret
         var newAccessToken = await _tokenService.GenerateTokenAsync(user, ip);
 
         return new AuthResult { Success = true, Token = newAccessToken.Token, RefreshToken = newAccessToken.RefreshToken };
     }
 
-    public async Task<AuthResult> RegisterManuallyAsync(RegisterRequest request)
+    public async Task<AuthResult> VerifyTwoFactorAsync(string userName, string code, string? ipAddress = null)
     {
-        var user = new SynergyIdentityUser
-        {
-            UserName = request.UserName,
-            Email = request.Email,
-            PhoneNumber = request.PhoneNumber
-        };
+        var ip = GetClientIpAddress(ipAddress);
 
-        var result = await _userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
+        var user = await _userManager.FindByNameAsync(userName);
+        if (user == null)
         {
-            return new AuthResult { Success = false, ErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description)) };
+            return new AuthResult { Success = false, ErrorMessage = "KullanÄ±cÄ± bulunamadÄ±." };
         }
 
-        return new AuthResult { Success = true };
+        if (!await _twoFaService.Validate2FaAsync(user.PhoneNumber, code))
+        {
+            return new AuthResult { Success = false, ErrorMessage = "GeÃ§ersiz 2FA kodu." };
+        }
+
+        // BaÅŸarÄ±lÄ± ise access ve refresh token Ã¼ret
+        var accessToken = await _tokenService.GenerateTokenAsync(user, ip);
+
+        return new AuthResult { Success = true, Token = accessToken.Token, RefreshToken = accessToken.RefreshToken };
     }
 
-    public async Task<AuthResult> RegisterWithGoogleAsync(string accessToken)
+    private string GetClientIpAddress(string? ipAddress = null)
     {
-        if (_googleAuthService == null)
+        if (!string.IsNullOrEmpty(ipAddress))
         {
-            return new AuthResult { Success = false, ErrorMessage = "GoogleAuthService is not configured." };
+            return ipAddress;
         }
 
-        var userInfo = await _googleAuthService.GetUserInfoAsync(accessToken);
-        if (userInfo == null)
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext == null)
         {
-            return new AuthResult { Success = false, ErrorMessage = "Invalid Google access token." };
+            throw new InvalidOperationException("HttpContext is not available.");
         }
 
-        var user = await _userManager.FindByEmailAsync(userInfo.Email);
-        if (user != null)
+        // X-Forwarded-For kontrolÃ¼
+        var forwardedIp = httpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(forwardedIp))
         {
-            return new AuthResult { Success = false, ErrorMessage = "Bu email ile sistemde kayýtlý bir kullanýcý zaten var." };
+            return forwardedIp.Split(',').First().Trim();
         }
 
-        var newUser = new SynergyIdentityUser
-        {
-            UserName = userInfo.Email,
-            Email = userInfo.Email
-        };
-
-        var result = await _userManager.CreateAsync(newUser);
-        if (!result.Succeeded)
-        {
-            return new AuthResult { Success = false, ErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description)) };
-        }
-
-        return new AuthResult { Success = true };
-    }
-
-    public async Task<AuthResult> RegisterWithPhoneAsync(string phoneNumber, string verificationCode)
-    {
-        if (_smsService == null)
-        {
-            return new AuthResult { Success = false, ErrorMessage = "SmsService is not configured." };
-        }
-
-        var isValid = await _smsService.ValidateVerificationCodeAsync(phoneNumber, verificationCode);
-        if (!isValid)
-        {
-            return new AuthResult { Success = false, ErrorMessage = "Invalid verification code." };
-        }
-
-        var user = new SynergyIdentityUser
-        {
-            UserName = phoneNumber,
-            PhoneNumber = phoneNumber
-        };
-
-        var result = await _userManager.CreateAsync(user);
-        if (!result.Succeeded)
-        {
-            return new AuthResult { Success = false, ErrorMessage = string.Join(", ", result.Errors.Select(e => e.Description)) };
-        }
-
-        return new AuthResult { Success = true };
+        // RemoteIpAddress kontrolÃ¼
+        return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 
     private string MaskPhone(string phone)
@@ -340,6 +248,6 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(phone) || phone.Length < 4)
             return "*****";
 
-        return new string('*', phone.Length - 4) + phone[^4..]; // örn: ******1234
+        return new string('*', phone.Length - 4) + phone[^4..]; // Ã¶rn: ******1234
     }
 }

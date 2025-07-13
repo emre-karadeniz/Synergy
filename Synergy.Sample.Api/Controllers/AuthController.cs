@@ -10,17 +10,19 @@ namespace Synergy.Sample.Api.Controllers;
 
 public class AuthController : BaseController
 {
-    private readonly IAuthService _authService;
-    public AuthController(IAuthService authService)
+    private readonly ILoginService _loginService;
+    private readonly IRegisterService _registerService;
+    public AuthController(ILoginService loginService, IRegisterService registerService)
     {
-        _authService = authService;
+        _loginService = loginService;
+        _registerService = registerService;
     }
 
     [HttpPost]
     [AllowAnonymous]
     public async Task<IActionResult> RegisterManual([FromBody] RegisterManualRequest request)
     {
-        var result = await _authService.RegisterManuallyAsync(new RegisterRequest
+        var result = await _registerService.RegisterManuallyAsync(new RegisterRequest
         {
             UserName = request.UserName,
             Password = request.Password,
@@ -36,7 +38,7 @@ public class AuthController : BaseController
     [AllowAnonymous]
     public async Task<IActionResult> RegisterGoogle([FromBody] RegisterGoogleRequest request)
     {
-        var result = await _authService.RegisterWithGoogleAsync(request.AccessToken);
+        var result = await _registerService.RegisterWithGoogleAsync(request.AccessToken);
         return CreateActionResult(result.Success
             ? Result.Created("Google ile kullanıcı kaydedildi.")
             : Result.BadRequest(result.ErrorMessage ?? "Google ile kayıt başarısız."));
@@ -46,7 +48,7 @@ public class AuthController : BaseController
     [AllowAnonymous]
     public async Task<IActionResult> LoginManual([FromBody] LoginManualRequest request)
     {
-        var result = await _authService.IdentityLoginAsync(new LoginRequest
+        var result = await _loginService.IdentityLoginAsync(new LoginRequest
         {
             UserName = request.UserName,
             Password = request.Password
@@ -60,7 +62,7 @@ public class AuthController : BaseController
     [AllowAnonymous]
     public async Task<IActionResult> LoginGoogle([FromBody] LoginGoogleRequest request)
     {
-        var result = await _authService.GoogleLoginAsync(request.AccessToken);
+        var result = await _loginService.GoogleLoginAsync(request.AccessToken);
         return CreateActionResult(result.Success
             ? Result.Success("Google ile login başarılı.")
             : Result.BadRequest(result.ErrorMessage ?? "Google ile login başarısız."));

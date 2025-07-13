@@ -41,7 +41,8 @@ public static class AuthBuilderExtensions
             .AddEntityFrameworkStores<SynergyIdentityDbContext>()
             .AddDefaultTokenProviders();
 
-        builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddScoped<ILoginService, LoginService>();
+        builder.Services.AddScoped<IRegisterService, RegisterService>();
         builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 
         // JWT Authentication ayarları
