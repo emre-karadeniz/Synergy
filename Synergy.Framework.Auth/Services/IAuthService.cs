@@ -9,6 +9,6 @@ public interface IAuthService
     Task<AuthResult> RegisterManuallyAsync(RegisterRequest request);
     Task<AuthResult> RegisterWithGoogleAsync(string accessToken);
     Task<AuthResult> RegisterWithPhoneAsync(string phoneNumber, string verificationCode);
-    Task<AuthResult> RefreshTokenAsync(string refreshToken, string ipAddress);
-    Task<AuthResult> GoogleLoginAsync(string accessToken);
+    Task<AuthResult> RefreshTokenAsync(string refreshToken, string? ipAddress);
+    Task<AuthResult> GoogleLoginAsync(string accessToken, string? ipAddress = null);
 }

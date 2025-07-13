@@ -8,12 +8,9 @@ using Synergy.Sample.Api.Models.Auth;
 
 namespace Synergy.Sample.Api.Controllers;
 
-[Route("api/[controller]/[action]")]
-[ApiController]
 public class AuthController : BaseController
 {
     private readonly IAuthService _authService;
-
     public AuthController(IAuthService authService)
     {
         _authService = authService;
@@ -56,7 +53,7 @@ public class AuthController : BaseController
         });
         return CreateActionResult(result.Success
             ? Result.Success("Login başarılı.")
-            : Result.Unauthorized(result.ErrorMessage ?? "Login başarısız."));
+            : Result.BadRequest(result.ErrorMessage ?? "Login başarısız."));
     }
 
     [HttpPost]
@@ -66,6 +63,6 @@ public class AuthController : BaseController
         var result = await _authService.GoogleLoginAsync(request.AccessToken);
         return CreateActionResult(result.Success
             ? Result.Success("Google ile login başarılı.")
-            : Result.Unauthorized(result.ErrorMessage ?? "Google ile login başarısız."));
+            : Result.BadRequest(result.ErrorMessage ?? "Google ile login başarısız."));
     }
 }

@@ -2,10 +2,11 @@ namespace Synergy.Framework.Auth.Services;
 
 public interface I2FaService
 {
-    Task<bool> Validate2FaAsync(string userId, string? code);
+    Task SendSmsCodeAsync(string phoneNumber);
+    Task<bool> Validate2FaAsync(string phoneNumber, string? code);
 }
 
 public interface ICaptchaService
 {
-    Task<bool> ValidateCaptchaAsync(string? captchaResponse);
+    Task<bool> ValidateCaptchaAsync(string? captchaToken);
 }

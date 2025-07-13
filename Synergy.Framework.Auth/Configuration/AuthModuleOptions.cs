@@ -4,14 +4,13 @@ public class AuthModuleOptions
 {
     public LdapOptions? Ldap { get; set; }
     public IdentityOptions? Identity { get; set; }
-    public bool Enable2FA { get; set; } = false;
     public bool EnableCaptcha { get; set; } = false;
-    public bool EnableEmailVerification { get; set; } = false;
     public bool EnableIpLock { get; set; } = false;
     public bool EnableRefreshToken { get; set; } = true;
     public bool EnableOAuth2 { get; set; } = false;
     public bool EnablePhoneLogin { get; set; } = false;
     public TokenOptions TokenOptions { get; set; } = null!;
+    public CaptchaOptions CaptchaOptions { get; set; } = null!;
 }
 
 public class LdapOptions
@@ -36,4 +35,10 @@ public class TokenOptions
     public int AccessTokenExpiration { get; set; }
     public int RefreshTokenExpiration { get; set; }
     public string SigningKey { get; set; } = null!;
+}
+
+public class CaptchaOptions
+{
+    public string SecretKey { get; set; } = "YOUR_GOOGLE_RECAPTCHA_SECRET";
+    public string Url { get; set; } = "https://www.google.com/recaptcha/api/siteverify";
 }

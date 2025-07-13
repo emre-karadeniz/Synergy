@@ -38,13 +38,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseSynergyLoggingMiddlewares();
 app.UseSynergyWebMiddlewares();
-app.UseSynergyAuthMiddlewares();
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-
-app.UseAuthorization();
+app.UseSynergyAuthMiddlewares();
 
 app.MapControllers();
 

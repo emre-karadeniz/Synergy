@@ -26,6 +26,8 @@ public static class AuthBuilderExtensions
 
         configure?.Invoke(opt);
         builder.Services.AddSingleton(opt);
+        builder.Services.AddHttpClient();
+        builder.Services.AddHttpContextAccessor();
 
         var configuration = builder.Configuration;
         var connectionString = configuration.GetConnectionString(opt.Identity.ConnectionStringName)
@@ -39,7 +41,6 @@ public static class AuthBuilderExtensions
             .AddEntityFrameworkStores<SynergyIdentityDbContext>()
             .AddDefaultTokenProviders();
 
-        
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 

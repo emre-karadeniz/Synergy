@@ -1,14 +1,12 @@
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Synergy.Framework.Auth.Configuration;
 using Synergy.Framework.Auth.Data;
 using Synergy.Framework.Auth.Entities;
+using Synergy.Framework.Auth.Models;
 
 namespace Synergy.Framework.Auth.Services;
 
@@ -23,11 +21,12 @@ public class TokenService
         _dbContext = dbContext;
     }
 
-    public string GenerateToken(string userId, IEnumerable<Claim>? extraClaims = null)
+    public async Task<AccessToken> GenerateTokenAsync(SynergyIdentityUser user, string ipAddress, IEnumerable<Claim>? extraClaims = null)
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Name, user.UserName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
         if (extraClaims != null)
@@ -42,10 +41,23 @@ public class TokenService
             expires: DateTime.UtcNow.AddMinutes(_tokenOptions.AccessTokenExpiration),
             signingCredentials: creds
         );
-        return new JwtSecurityTokenHandler().WriteToken(token);
+
+        var tokenCreate = new JwtSecurityTokenHandler().WriteToken(token);
+        var refreshToken = await GenerateRefreshTokenAsync(user.Id, ipAddress);
+
+        await SaveUserSessionAsync(user.Id, tokenCreate, refreshToken.Token, ipAddress);
+
+        return new AccessToken
+        {
+            Token = tokenCreate,
+            Expiration = token.ValidTo,
+            RefreshToken = refreshToken.Token,
+            RefreshTokenExpiration = DateTime.UtcNow.AddMinutes(_tokenOptions.RefreshTokenExpiration)
+        };
+
     }
 
-    public async Task<RefreshToken> GenerateRefreshTokenAsync(string userId, string ip)
+    private async Task<RefreshToken> GenerateRefreshTokenAsync(string userId, string ip)
     {
         var refreshToken = new RefreshToken
         {
@@ -59,7 +71,7 @@ public class TokenService
         return refreshToken;
     }
 
-    public async Task SaveUserSessionAsync(string userId, string accessToken, string refreshToken, string ip)
+    private async Task SaveUserSessionAsync(string userId, string accessToken, string refreshToken, string ip)
     {
         var session = new UserTokenSession
         {
