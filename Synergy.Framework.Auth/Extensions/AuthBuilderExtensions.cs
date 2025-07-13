@@ -26,8 +26,6 @@ public static class AuthBuilderExtensions
 
         configure?.Invoke(opt);
         builder.Services.AddSingleton(opt);
-        builder.Services.AddHttpContextAccessor();
-        builder.Services.AddHttpClient();
 
         var configuration = builder.Configuration;
         var connectionString = configuration.GetConnectionString(opt.Identity.ConnectionStringName)
