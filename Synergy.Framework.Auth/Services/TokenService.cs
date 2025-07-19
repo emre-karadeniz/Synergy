@@ -10,7 +10,7 @@ using Synergy.Framework.Auth.Models;
 
 namespace Synergy.Framework.Auth.Services;
 
-public class TokenService
+internal class TokenService
 {
     private readonly TokenOptions _tokenOptions;
     private readonly SynergyIdentityDbContext _dbContext;
@@ -21,7 +21,7 @@ public class TokenService
         _dbContext = dbContext;
     }
 
-    public async Task<AccessToken> GenerateTokenAsync(SynergyIdentityUser user, string ipAddress, IEnumerable<Claim>? extraClaims = null)
+    public async Task<AccessToken> GenerateTokenAsync(SynergyIdentityUser user, string ipAddress, List<string> roles = null, IEnumerable<Claim>? extraClaims = null)
     {
         var claims = new List<Claim>
         {
@@ -29,6 +29,17 @@ public class TokenService
             new Claim(ClaimTypes.Name, user.UserName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        // Rolleri claim olarak ekle
+        if (roles != null && roles.Count > 0)
+        {
+            foreach (var role in roles)
+            {
+                if (!string.IsNullOrWhiteSpace(role))
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
+
         if (extraClaims != null)
             claims.AddRange(extraClaims);
 

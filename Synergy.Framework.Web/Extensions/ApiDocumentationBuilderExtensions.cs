@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -20,9 +19,9 @@ public static class ApiDocumentationBuilderExtensions
     /// <summary>
     /// API dokümantasyon servislerini (Swagger veya Scalar) yapılandırır.
     /// </summary>
-    public static WebApplicationBuilder AddSynergyApiDocumentation(this WebApplicationBuilder builder, Action<SwaggerDocOptions>? configureOptions = null)
+    public static WebApplicationBuilder AddSynergyApiDocumentation(this WebApplicationBuilder builder, Action<ApiDocumentationOptions>? configureOptions = null)
     {
-        var docOptions = new SwaggerDocOptions();
+        var docOptions = new ApiDocumentationOptions();
         configureOptions?.Invoke(docOptions);
         builder.Services.AddSingleton(docOptions);
 
@@ -34,42 +33,45 @@ public static class ApiDocumentationBuilderExtensions
             {
                 c.CustomSchemaIds(x => x.ToString()); // Şema ID'lerini benzersiz hale getir
 
-                c.SwaggerDoc(docOptions.Version, new OpenApiInfo
+                c.SwaggerDoc(docOptions.Swagger.Version, new OpenApiInfo
                 {
-                    Title = docOptions.Title,
-                    Version = docOptions.Version,
-                    Description = docOptions.Description
+                    Title = docOptions.Swagger.Title,
+                    Version = docOptions.Swagger.Version,
+                    Description = docOptions.Swagger.Description
                 });
 
-                // JWT Bearer güvenlik tanımını ekle
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                if (docOptions.Swagger.EnableBearerAuth)
                 {
-                    In = ParameterLocation.Header,
-                    Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "Bearer",
-                    BearerFormat = "JWT"
-                });
-
-                // Tüm endpoint'ler için güvenlik gereksinimini ekle (varsayılan olarak)
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
+                    // JWT Bearer güvenlik tanımını ekle
+                    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                     {
-                        new OpenApiSecurityScheme
+                        In = ParameterLocation.Header,
+                        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'",
+                        Name = "Authorization",
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "Bearer",
+                        BearerFormat = "JWT"
+                    });
+
+                    // Tüm endpoint'ler için güvenlik gereksinimini ekle (varsayılan olarak)
+                    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                    {
                         {
-                            Reference = new OpenApiReference
+                            new OpenApiSecurityScheme
                             {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        Array.Empty<string>()
-                    }
-                });
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            Array.Empty<string>()
+                        }
+                    });
+                }
 
                 // XML yorumlarını dahil et (eğer etkinse)
-                if (docOptions.IncludeXmlComments)
+                if (docOptions.Swagger.IncludeXmlComments)
                 {
                     var xmlFile = $"{Assembly.GetEntryAssembly()?.GetName().Name}.xml"; // Uygulamanın ana assembly'si
                     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -87,8 +89,7 @@ public static class ApiDocumentationBuilderExtensions
 
         if (docOptions.EnableScalar)
         {
-            // Scalar için OpenApi tanımını ekle
-            builder.Services.AddOpenApi(docOptions.Version, options =>
+            builder.Services.AddOpenApi(docOptions.Scalar.Title, options =>
             {
                 options.AddDocumentTransformer<ScalarBearerSecuritySchemeTransformer>();
                 // Ek Scalar OpenApi ayarları buraya gelebilir
@@ -103,37 +104,31 @@ public static class ApiDocumentationBuilderExtensions
     /// </summary>
     public static WebApplication UseSynergyApiDocumentation(this WebApplication app)
     {
-        //var docOptions = app.Configuration
-        //    .GetSection(SwaggerDocOptions.ConfigurationSectionName)
-        //    .Get<SwaggerDocOptions>();
-        var docOptions = app.Services.GetService<IOptions<SwaggerDocOptions>>()?.Value;
-        //var docOptions = app.ApplicationServices.GetRequiredService<SwaggerDocOptions>();
-
+        var docOptions = app.Services.GetService<IOptions<ApiDocumentationOptions>>()?.Value;
         if (docOptions == null)
         {
             return app; // Eğer seçenekler okunamazsa, hiçbir şey yapma.
         }
 
-        // Geliştirme ortamında veya her zaman etkinleştirilebilir
-        if (app.Environment.IsDevelopment() || docOptions.EnableSwagger) // Production'da da Swagger'ı açmak istersek
+        if (app.Environment.IsDevelopment() || docOptions.EnableSwagger)
         {
             if (docOptions.EnableSwagger)
             {
-                app.UseSwagger(); // Swagger JSON endpoint'ini etkinleştirir
+                app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.SwaggerEndpoint($"/swagger/{docOptions.Version}/swagger.json", $"{docOptions.Title} {docOptions.Version}");
-                    c.RoutePrefix = docOptions.RoutePrefix;
-                    c.DocumentTitle = docOptions.Title; // Tarayıcı başlığını ayarla
+                    c.SwaggerEndpoint($"/{docOptions.Swagger.RoutePrefix}/{docOptions.Swagger.Version}/swagger.json", $"{docOptions.Swagger.Title} {docOptions.Swagger.Version}");
+                    c.RoutePrefix = docOptions.Swagger.RoutePrefix;
+                    c.DocumentTitle = docOptions.Swagger.Title;
                 });
             }
         }
 
-        if (app.Environment.IsDevelopment() || docOptions.EnableScalar) // Production'da da Scalar'ı açmak istersek
+        if (app.Environment.IsDevelopment() || docOptions.EnableScalar)
         {
             if (docOptions.EnableScalar)
             {
-                app.MapOpenApi(); // Scalar'ın OpenAPI JSON endpoint'ini etkinleştirir
+                app.MapOpenApi();
                 app.MapScalarApiReference(options =>
                 {
                     options.Title = docOptions.Scalar.Title;
@@ -142,7 +137,6 @@ public static class ApiDocumentationBuilderExtensions
                     options.HideModels = docOptions.Scalar.HideModels;
                     options.ShowSidebar = docOptions.Scalar.ShowSidebar;
 
-                    // String değerlerden enum'a dönüştürme
                     if (Enum.TryParse<ScalarLayout>(docOptions.Scalar.Layout, true, out var layout))
                     {
                         options.Layout = layout;
@@ -152,7 +146,6 @@ public static class ApiDocumentationBuilderExtensions
                         options.Theme = theme;
                     }
 
-                    // HTTP Client seçimi
                     ScalarTarget target = ScalarTarget.CSharp;
                     if (Enum.TryParse<ScalarTarget>(docOptions.Scalar.DefaultHttpClientTarget, true, out var parsedTarget))
                     {
@@ -165,14 +158,10 @@ public static class ApiDocumentationBuilderExtensions
                     }
                     options.DefaultHttpClient = new KeyValuePair<ScalarTarget, ScalarClient>(target, client);
 
-
                     options.Authentication = new ScalarAuthenticationOptions
                     {
                         PreferredSecuritySchemes = new[] { docOptions.Scalar.PreferredSecurityScheme }
                     };
-
-                    // Scalar'ın kendi route prefix'i yok, OpenAPI endpoint'ini kullanır
-                    // options.RoutePrefix = docOptions.RoutePrefix; // Bu satır Scalar için geçerli değil.
                 });
             }
         }
@@ -191,8 +180,7 @@ public static class ApiDocumentationBuilderExtensions
 
             if (authenticationSchemes.Any(authScheme => authScheme.Name == "Bearer"))
             {
-                // Add the security scheme at the document level
-                var requirements = new Dictionary<string, OpenApiSecurityScheme> // NSwag'ın OpenApiSecurityScheme'ini kullan
+                var requirements = new Dictionary<string, OpenApiSecurityScheme>
                 {
                     ["Bearer"] = new()
                     {
@@ -205,7 +193,6 @@ public static class ApiDocumentationBuilderExtensions
                 document.Components ??= new OpenApiComponents();
                 document.Components.SecuritySchemes = requirements;
 
-                // Apply it as a requirement for all operations
                 foreach (var operation in document.Paths.Values.SelectMany(path => path.Operations))
                 {
                     operation.Value.Security.Add(new OpenApiSecurityRequirement

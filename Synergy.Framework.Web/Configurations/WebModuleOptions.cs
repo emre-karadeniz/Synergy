@@ -11,7 +11,7 @@ public class WebModuleOptions
     /// <summary>
     /// API dokümantasyon ayarlarý (opsiyonel override için)
     /// </summary>
-    public Action<SwaggerDocOptions>? ApiDocumentationOptions { get; set; }
+    public Action<ApiDocumentationOptions>? ApiDocumentationOptions { get; set; }
 
     /// <summary>
     /// Rate Limiting'i etkinleþtirir.

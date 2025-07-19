@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +20,7 @@ public static class AuthBuilderExtensions
     {
         var opt = new AuthModuleOptions();
         opt.Ldap = new LdapOptions();
-        opt.Identity = new Configuration.IdentityOptions();
+        opt.Identity = new IdentityOptionsEx();
         opt.TokenOptions = new Configuration.TokenOptions();
 
         configure?.Invoke(opt);
@@ -41,24 +40,51 @@ public static class AuthBuilderExtensions
             .AddEntityFrameworkStores<SynergyIdentityDbContext>()
             .AddDefaultTokenProviders();
 
+        // IdentityOptionsEx ayarlarını uygula
+        builder.Services.Configure<IdentityOptions>(options =>
+        {
+            var idOpt = opt.Identity;
+            options.Password.RequiredLength = idOpt.Password.RequiredLength;
+            options.Password.RequireDigit = idOpt.Password.RequireDigit;
+            options.Password.RequireLowercase = idOpt.Password.RequireLowercase;
+            options.Password.RequireUppercase = idOpt.Password.RequireUppercase;
+            options.Password.RequireNonAlphanumeric = idOpt.Password.RequireNonAlphanumeric;
+            options.Password.RequiredUniqueChars = idOpt.Password.RequiredUniqueChars;
+
+            options.Lockout.AllowedForNewUsers = idOpt.Lockout.AllowedForNewUsers;
+            options.Lockout.MaxFailedAccessAttempts = idOpt.Lockout.MaxFailedAccessAttempts;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(idOpt.Lockout.DefaultLockoutTimeSpanMinutes);
+
+            options.User.RequireUniqueEmail = idOpt.User.RequireUniqueEmail;
+            options.User.AllowedUserNameCharacters = idOpt.User.AllowedUserNameCharacters;
+
+            options.SignIn.RequireConfirmedEmail = idOpt.SignIn.RequireConfirmedEmail;
+            options.SignIn.RequireConfirmedPhoneNumber = idOpt.SignIn.RequireConfirmedPhoneNumber;
+        });
+
         builder.Services.AddScoped<ILoginService, LoginService>();
         builder.Services.AddScoped<IRegisterService, RegisterService>();
         builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 
         // JWT Authentication ayarları
-        builder.Services.AddAuthentication(options =>
+        builder.Services
+            .AddAuthorization()
+            .AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         })
         .AddJwtBearer(options =>
         {
+            options.RequireHttpsMetadata = false; // Sadece HTTPS üzerinden token doğrulaması yapılmasını zorunlu kılar. (Şuan devre dışı hepsini kabul ediyor.)
+            options.SaveToken = true;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
+
                 ValidIssuer = opt.TokenOptions.Issuer,
                 ValidAudience = opt.TokenOptions.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(opt.TokenOptions.SigningKey)),

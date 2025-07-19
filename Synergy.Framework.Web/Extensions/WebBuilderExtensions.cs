@@ -31,7 +31,6 @@ public static class WebBuilderExtensions
             {
                 if (options.ApiBehaviorOptions != null)
                 {
-                    // Kullanıcıdan gelen Action<ApiBehaviorOptions> doğrudan uygulanır
                     options.ApiBehaviorOptions(apiBehaviorOptions);
                 }
                 else
@@ -66,7 +65,6 @@ public static class WebBuilderExtensions
     {
         app.UseRequestHandler();
         app.UseSynergyRateLimiting();
-        // WebApplication'a cast ederek UseSynergyApiDocumentation'u çağır
         if (app is WebApplication webApp)
         {
             webApp.UseSynergyApiDocumentation();
@@ -77,7 +75,7 @@ public static class WebBuilderExtensions
     private static void LoadOtherImplementations(IServiceCollection services, string typeSuffix, params Assembly[] assemblies)
     {
         if (assemblies == null || assemblies.Length == 0)
-            return; // Assembly verilmezse otomatik tarama yapılmaz
+            return;
 
         foreach (var assembly in assemblies)
         {
