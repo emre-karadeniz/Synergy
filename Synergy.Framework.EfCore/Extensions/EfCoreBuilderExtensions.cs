@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Synergy.Framework.EfCore.Configuration;
 using Synergy.Framework.EfCore.Context;
 using Synergy.Framework.EfCore.Filters;
+using Synergy.Framework.EfCore.Interceptor;
 using Synergy.Framework.EfCore.Repositories;
 using Synergy.Framework.EfCore.UnitOfWork;
 
@@ -25,6 +26,9 @@ public static class EfCoreBuilderExtensions
             options.Filters.Add<TransactionFilter>();
         });
 
+        builder.Services.AddScoped<INolockContext, NolockContext>();
+        builder.Services.AddScoped<WithNoLockInterceptor>();
+
         var cfg = new EfCoreModuleOptions();
         configure?.Invoke(cfg);
 
@@ -35,17 +39,26 @@ public static class EfCoreBuilderExtensions
             cfg.SeparateReadDatabase ? cfg.WriteConnectionStringName : cfg.ConnectionStringName);
 
         // 1️ WRITE context
-        builder.Services.AddDbContext<TWriteDbContext>(opt =>
-            opt.UseSqlServer(csWrite));
+        builder.Services.AddDbContext<TWriteDbContext>((serviceProvider, options) =>
+        {
+            var interceptor = serviceProvider.GetRequiredService<WithNoLockInterceptor>();
+            options.UseSqlServer(csWrite)
+                   .AddInterceptors(interceptor);
+        });
+
 
         // 2️ READ context (optional)
         if (cfg.SeparateReadDatabase)
         {
             var csRead = builder.Configuration.GetConnectionString(cfg.ReadConnectionStringName);
-            builder.Services.AddDbContext<BaseDbContext>(
-                opt => opt.UseSqlServer(csRead),
-                contextLifetime: ServiceLifetime.Scoped,
-                optionsLifetime: ServiceLifetime.Singleton);
+            builder.Services.AddDbContext<BaseDbContext>((serviceProvider, opt) =>
+            {
+                var interceptor = serviceProvider.GetRequiredService<WithNoLockInterceptor>();
+                opt.UseSqlServer(csRead)
+                   .AddInterceptors(interceptor);
+            },
+            contextLifetime: ServiceLifetime.Scoped,
+            optionsLifetime: ServiceLifetime.Singleton);
         }
 
         // 3️ generic repository + UoW registration

@@ -5,6 +5,7 @@ using Synergy.Framework.Web.Configurations;
 using Synergy.Framework.Web.Filters;
 using Synergy.Framework.Web.Middlewares;
 using Synergy.Framework.Web.Providers;
+using System.Reflection;
 
 namespace Synergy.Framework.Web.Extensions;
 
@@ -72,4 +73,40 @@ public static class WebBuilderExtensions
         }
         return app;
     }
+
+    private static void LoadOtherImplementations(IServiceCollection services, string typeSuffix, params Assembly[] assemblies)
+    {
+        if (assemblies == null || assemblies.Length == 0)
+            return; // Assembly verilmezse otomatik tarama yapılmaz
+
+        foreach (var assembly in assemblies)
+        {
+            var types = assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract && t.Name.EndsWith(typeSuffix))
+                .ToList();
+
+            foreach (var implementation in types)
+            {
+                var interfaceType = implementation.GetInterface($"I{implementation.Name}");
+                if (interfaceType != null)
+                {
+                    services.AddScoped(interfaceType, implementation);
+                }
+            }
+        }
+    }
+
+    public static void AddSynergyServices(this IServiceCollection services, params Assembly[] assemblies)
+    {
+        LoadOtherImplementations(services, "Service", assemblies);
+    }
+
+    public static void AddSynergyRepositories(this IServiceCollection services, params Assembly[] assemblies)
+    {
+        LoadOtherImplementations(services, "Repository", assemblies);
+    }
 }
+
+
+//builder.Services.AddSynergyServices(typeof(SomeService).Assembly, typeof(SomeOtherService).Assembly);
+//builder.Services.AddSynergyRepositories(typeof(SomeRepository).Assembly);
