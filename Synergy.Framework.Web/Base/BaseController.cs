@@ -2,14 +2,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-using Synergy.Framework.Web.Filters;
 using Synergy.Framework.Web.Results;
 
 namespace Synergy.Framework.Web.Base;
 
 [Route("api/[controller]/[action]")]
 [ApiController]
-[TypeFilter(typeof(RequestBodyActionFilter))]
 [Authorize]
 public class BaseController: ControllerBase
 {

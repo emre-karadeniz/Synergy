@@ -54,7 +54,7 @@ public class AuthController : BaseController
             Password = request.Password
         });
         return CreateActionResult(result.Success
-            ? Result.Success("Login başarılı.")
+            ? Result.Success(result.Token)
             : Result.BadRequest(result.ErrorMessage ?? "Login başarısız."));
     }
 

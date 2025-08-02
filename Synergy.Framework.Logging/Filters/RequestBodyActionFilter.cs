@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Synergy.Framework.Web.Extensions;
-using System.Text.Encodings.Web;
+using Synergy.Framework.Logging.Options;
 using System.Text.Json;
 
-namespace Synergy.Framework.Web.Filters;
+namespace Synergy.Framework.Logging.Filters;
 
 public class RequestBodyActionFilter : IActionFilter
 {
@@ -15,7 +14,7 @@ public class RequestBodyActionFilter : IActionFilter
         if (controllerActionDescriptor is not null)
         {
             var requestBody = FormatRequestBody(context.ActionArguments!);
-            context.HttpContext.SetValue("RequestBody", requestBody);
+            context.HttpContext.Items["RequestBody"] = requestBody;
         }
     }
 
@@ -32,14 +31,7 @@ public class RequestBodyActionFilter : IActionFilter
                 .Where(kv => kv.Value is not CancellationToken) //CancellationToken olanları alma
                 .ToDictionary(kv => kv.Key, kv => kv.Value);
 
-            var options = new JsonSerializerOptions
-            {
-                WriteIndented = false, //JSON'un minify edilmiş olarak kaydedilmesini sağlar
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase, //JSON çıktısı camelCase olur
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping //Escape karakterlerini kaldırır
-            };
-
-            return $"{JsonSerializer.Serialize(filteredAtguments, options)}";
+            return $"{JsonSerializer.Serialize(filteredAtguments, LoggingJsonSerializerOptions.Cached)}";
         }
         return "";
     }

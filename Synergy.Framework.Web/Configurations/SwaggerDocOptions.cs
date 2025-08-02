@@ -8,7 +8,7 @@ public class ApiDocumentationOptions
     public const string ConfigurationSectionName = "ApiDocumentation";
 
     public bool EnableSwagger { get; set; } = true;
-    public bool EnableScalar { get; set; } = false;
+    public bool EnableScalar { get; set; } = true;
     public SwaggerOptions Swagger { get; set; } = new SwaggerOptions();
     public ScalarOptions Scalar { get; set; } = new ScalarOptions();
 }

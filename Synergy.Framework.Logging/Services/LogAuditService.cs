@@ -1,8 +1,8 @@
 ﻿using Serilog;
 using Synergy.Framework.Logging.Enums;
+using Synergy.Framework.Logging.Exceptions;
 using Synergy.Framework.Logging.Models;
-using Synergy.Framework.Shared.Exceptions;
-using Synergy.Framework.Shared.Options;
+using Synergy.Framework.Logging.Options;
 using System.Reflection;
 using System.Text.Json;
 
@@ -45,7 +45,7 @@ internal class LogAuditService : ILogAuditService
             throw new ArgumentNullException(nameof(oldEntity));
 
         if (newEntity.GetType() != oldEntity.GetType())
-            throw new SynergyException("newEntity and oldEntity must be of the same type.","AUDIT_UPDATE_ARGUMENT");
+            throw new LoggingException("newEntity and oldEntity must be of the same type.","AUDIT_UPDATE_ARGUMENT");
 
         var entityType = newEntity.GetType().Name;
         var message = $"{entityType} updated.";
@@ -141,6 +141,6 @@ internal class LogAuditService : ILogAuditService
         _logger
             .ForContext("LogType", nameof(LogType.Audit))
             .Information("{Type} | {Message} | {@PayloadJson}",
-            nameof(LogType.Audit), message, JsonSerializer.Serialize(auditLogDto, SynergyJsonSerializerOptions.Cached));
+            nameof(LogType.Audit), message, JsonSerializer.Serialize(auditLogDto, LoggingJsonSerializerOptions.Cached));
     }
 }

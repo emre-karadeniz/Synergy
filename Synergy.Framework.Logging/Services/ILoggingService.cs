@@ -8,4 +8,5 @@ public interface ILoggingService
     void LogRequest(long executionTimeMs);
     void LogRateLimiting();
     void LogInformation(string message, string logType = "Info", object? payload = null); // Ek genel log metodu
+    void LogToFile(string message);
 }

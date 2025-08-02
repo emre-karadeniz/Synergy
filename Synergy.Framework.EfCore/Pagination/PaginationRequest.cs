@@ -1,4 +1,4 @@
-﻿using Synergy.Framework.Shared.Exceptions;
+﻿using Synergy.Framework.EfCore.Exceptions;
 
 namespace Synergy.Framework.EfCore.Pagination;
 
@@ -14,7 +14,7 @@ public class PaginationRequest
         set
         {
             if (value < 1)
-                throw new SynergyException("PageNumber must be greater than 0.", "PAGINATION");
+                throw new EfCoreException("PageNumber must be greater than 0.", "PAGINATION");
             _pageNumber = value;
         }
     }
@@ -25,9 +25,9 @@ public class PaginationRequest
         set
         {
             if (value < 1)
-                throw new SynergyException("PageSize must be greater than 0.", "PAGINATION");
+                throw new EfCoreException("PageSize must be greater than 0.", "PAGINATION");
             if (value > MaxPageSize)
-                throw new SynergyException($"PageSize must not exceed {MaxPageSize}.", "PAGINATION");
+                throw new EfCoreException($"PageSize must not exceed {MaxPageSize}.", "PAGINATION");
             _pageSize = value;
         }
     }

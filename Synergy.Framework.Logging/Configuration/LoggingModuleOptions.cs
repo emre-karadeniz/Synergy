@@ -12,6 +12,7 @@ public class LoggingModuleOptions
     public bool EnableLogging { get; set; } = true;
     public string[] UseLogDbType { get; set; } = [nameof(LogDbType.SqlServer)];
     public string ConnectionStringName { get; set; } = "DefaultConnection";
+    public string ElasticsearchUri { get; set; } = "http://localhost:9200";
     public string TableName { get; set; } = "SynergySystemLogs";
     public bool AutoCreateSqlTable { get; set; } = true;
     public int BatchPostingLimit { get; set; } = 50;

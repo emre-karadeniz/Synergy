@@ -4,13 +4,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Debugging;
+using Serilog.Sinks.Elasticsearch;
 using Serilog.Sinks.MSSqlServer;
 using Synergy.Framework.Logging.Configuration;
 using Synergy.Framework.Logging.Enrichers;
 using Synergy.Framework.Logging.Enums;
+using Synergy.Framework.Logging.Exceptions;
+using Synergy.Framework.Logging.Filters;
 using Synergy.Framework.Logging.Middleware;
 using Synergy.Framework.Logging.Services;
-using Synergy.Framework.Shared.Exceptions;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics;
@@ -21,17 +23,23 @@ public static class LoggingBuilderExtensions
 {
     public static WebApplicationBuilder UseSynergyLogging(this WebApplicationBuilder builder, Action<LoggingModuleOptions>? configureOptions = null)
     {
-        var environment = builder.Environment;
         var options = new LoggingModuleOptions();
 
         // Opsiyonel konfigürasyon uygula
         configureOptions?.Invoke(options);
+
+        builder.Services.AddControllers(options =>
+        {
+            options.Filters.Add<RequestBodyActionFilter>();
+        });
 
         // DI kaydı
         builder.Services.AddSingleton(options);
         builder.Services.AddSingleton<ILoggingService, LoggingService>();
         builder.Services.AddSingleton<ILogAuditService, LogAuditService>();
         builder.Services.AddHttpContextAccessor();
+
+        var environmentName = builder.Environment.EnvironmentName;
 
         // Serilog config
 
@@ -46,15 +54,27 @@ public static class LoggingBuilderExtensions
             return builder;
         }
 
+        var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .Filter.ByIncludingOnly(logEvent =>
+                logEvent.Properties.TryGetValue("LogType", out var value) &&
+                Enum.TryParse<LogType>(value.ToString().Trim('"'), out _));
+
+        // Enrich ayarları
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
+        loggerConfig = loggerConfig
+            .Enrich.With(new RequestContextEnricher(httpContextAccessor, options.ExcludedRequestPathsForBody))
+            .Enrich.WithProperty("Environment", environmentName);
+
+
+        // SQL Server Sink
         if (options.UseLogDbType.Contains(nameof(LogDbType.SqlServer)))
         {
             var configuration = builder.Configuration;
             var connectionString = configuration.GetConnectionString(options.ConnectionStringName)
-                                    ?? throw new SynergyException("Connection string not found.", "LOG_CONN_STRING_NULL");
-
-            var serviceProvider = builder.Services.BuildServiceProvider();
-            var httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
-
+                                    ?? throw new LoggingException("Connection string not found.", "LOG_CONN_STRING_NULL");
+           
             var columnOptions = new ColumnOptions();
 
             // Serilog'un varsayılan sütunlarını kaldır
@@ -85,40 +105,40 @@ public static class LoggingBuilderExtensions
                     new SqlColumn { ColumnName = "RequestMethod", DataType = SqlDbType.NVarChar, DataLength = 10, AllowNull = false },
                     new SqlColumn { ColumnName = "RequestPath", DataType = SqlDbType.NVarChar, DataLength = 250, AllowNull = false },
                     new SqlColumn { ColumnName = "RequestBody", DataType = SqlDbType.NVarChar, DataLength = -1, AllowNull = false },
-                    new SqlColumn { ColumnName = "PayloadJson", DataType = SqlDbType.NVarChar, DataLength = -1, AllowNull = false }
+                    new SqlColumn { ColumnName = "PayloadJson", DataType = SqlDbType.NVarChar, DataLength = -1, AllowNull = false },
+                    new SqlColumn { ColumnName = "IsAuthenticated", DataType = SqlDbType.Bit, AllowNull = false },
             };
 
+            loggerConfig = loggerConfig.WriteTo.MSSqlServer(
+                connectionString: connectionString,
+                sinkOptions: new MSSqlServerSinkOptions
+                {
+                    TableName = options.TableName,
+                    AutoCreateSqlTable = options.AutoCreateSqlTable,
+                    BatchPostingLimit = options.BatchPostingLimit
+                },
+                columnOptions: columnOptions
+            );
+
+            // ElasticSearch Sink
+            if (options.UseLogDbType.Contains(nameof(LogDbType.Elasticsearch)))
+            {
+                string elasticUri = options.ElasticsearchUri;
+                loggerConfig = loggerConfig.WriteTo.Elasticsearch(
+                    new ElasticsearchSinkOptions(new Uri(elasticUri))
+                    {
+                        AutoRegisterTemplate = true, // Şablonu otomatik kaydet, false olursa kendine şablon oluşturmanız gerekir
+                        IndexFormat = "synergy-logs-{0:yyyy.MM.dd}"
+                    });
+            }
 
             // Serilog'un kendi iç hatalarını konsola yazdırın (geliştirme için faydalı)
             SelfLog.Enable(msg => Console.WriteLine($"Serilog SelfLog: {msg}"));
             SelfLog.Enable(msg => Debug.WriteLine(msg));
             SelfLog.Enable(Console.Error);
 
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .Filter.ByIncludingOnly(logEvent =>
-                    logEvent.Properties.TryGetValue("LogType", out var value) &&
-                    Enum.TryParse<LogType>(value.ToString().Trim('"'), out _))
-                .Enrich.With(new RequestContextEnricher(httpContextAccessor, options.ExcludedRequestPathsForBody))
-                .Enrich.WithProperty("Environment", environment.EnvironmentName)
-                .WriteTo.MSSqlServer(
-                    connectionString: connectionString,
-                    sinkOptions: new MSSqlServerSinkOptions
-                    {
-                        TableName = options.TableName,
-                        AutoCreateSqlTable = options.AutoCreateSqlTable,
-                        BatchPostingLimit = options.BatchPostingLimit
-                    },
-                    columnOptions: columnOptions
-                )
-                .CreateLogger();
-
+            Log.Logger = loggerConfig.CreateLogger();
             builder.Host.UseSerilog();
-        }
-
-        if (options.UseLogDbType.Contains(nameof(LogDbType.Elasticsearch)))
-        {
-            //sonra geliştirilecek
         }
 
         return builder;
@@ -133,14 +153,14 @@ public static class LoggingBuilderExtensions
             app.UseMiddleware<ErrorLoggingMiddleware>(options.ExcludeExceptionTypes);
         }
 
-        if (options.EnableRequestLogging)
-        {
-            app.UseMiddleware<RequestLoggingMiddleware>(options.ExcludeRequestPaths);
-        }
-
         if (options.EnablePerformanceLogging)
         {
             app.UseMiddleware<PerfLoggingMiddleware>(options.PerformanceLogThresholdMs);
+        }
+
+        if (options.EnableRequestLogging)
+        {
+            app.UseMiddleware<RequestLoggingMiddleware>(options.ExcludeRequestPaths);
         }
 
         return app;

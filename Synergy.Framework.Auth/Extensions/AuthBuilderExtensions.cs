@@ -8,8 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using Synergy.Framework.Auth.Configuration;
 using Synergy.Framework.Auth.Data;
 using Synergy.Framework.Auth.Entities;
+using Synergy.Framework.Auth.Exceptions;
 using Synergy.Framework.Auth.Services;
-using Synergy.Framework.Shared.Exceptions;
 using System.Text;
 
 namespace Synergy.Framework.Auth.Extensions;
@@ -30,7 +30,7 @@ public static class AuthBuilderExtensions
 
         var configuration = builder.Configuration;
         var connectionString = configuration.GetConnectionString(opt.Identity.ConnectionStringName)
-                                ?? throw new SynergyException("Connection string not found.", "LOG_CONN_STRING_NULL");
+                                ?? throw new AuthException("Connection string not found.", "LOG_CONN_STRING_NULL");
 
         // Identity DbContext ve Identity servislerini ekle
         builder.Services.AddDbContext<SynergyIdentityDbContext>(options =>

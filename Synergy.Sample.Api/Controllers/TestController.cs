@@ -11,6 +11,7 @@ namespace Synergy.Sample.Api.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> CreateCategory(CategoryAddDto request)
         {
+            int.Parse("fgh");
             return Ok("başarılı");
             //return CreateActionResult(await Mediator.Send(request));
         }

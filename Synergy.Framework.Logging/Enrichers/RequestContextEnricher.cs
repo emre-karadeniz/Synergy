@@ -2,11 +2,13 @@
 using Serilog.Core;
 using Serilog.Events;
 using System.Reflection;
+using System.Security.Claims;
+using System.Text.Json.Nodes;
 using UAParser;
 
 namespace Synergy.Framework.Logging.Enrichers;
 
-internal class RequestContextEnricher: ILogEventEnricher
+internal class RequestContextEnricher : ILogEventEnricher
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private static readonly Parser _uaParser = Parser.GetDefault();
@@ -23,7 +25,7 @@ internal class RequestContextEnricher: ILogEventEnricher
         var context = _httpContextAccessor.HttpContext;
         if (context == null) return;
 
-        var userId = context.User?.FindFirst("sub")?.Value ?? context.User?.FindFirst("nameid")?.Value;
+        var userId = context.User?.FindFirst("sub")?.Value ?? context.User?.FindFirst("nameid")?.Value ?? context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var ip = context.Connection?.RemoteIpAddress?.ToString() ?? "N/A";
         var host = context.Request.Host.Value;
         var requestMethod = context.Request.Method;
@@ -32,11 +34,24 @@ internal class RequestContextEnricher: ILogEventEnricher
         var correlationId = context.TraceIdentifier;
         var level = logEvent.Level.ToString();
         var applicationName = Assembly.GetEntryAssembly()?.GetName().Name ?? "UnknownApp";
+        var isAuthenticated = context.User?.Identity?.IsAuthenticated ?? false;
 
         var requestBody = context.Items.TryGetValue("RequestBody", out var body) ? body?.ToString() ?? "N/A" : "N/A";
         if (_excludedRequestPathsForBody.Any(p => requestPath.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
         {
             requestBody = "{}"; // hassas veri içerdiği için loglama
+        }
+
+        // RequestBody'yi maskele
+        if (!string.IsNullOrWhiteSpace(requestBody) && requestBody.TrimStart().StartsWith("{"))
+        {
+            try
+            {
+                var rootNode = JsonNode.Parse(requestBody);
+                MaskSensitiveData(rootNode);
+                requestBody = rootNode?.ToJsonString() ?? "{}";
+            }
+            catch { /* parse hatası olursa olduğu gibi bırak */}
         }
 
         string browser = "Unknown", os = "Unknown", deviceType = "Unknown", clientType = "Unknown";
@@ -80,5 +95,31 @@ internal class RequestContextEnricher: ILogEventEnricher
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("CorrelationId", correlationId));
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("ApplicationName", applicationName));
         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("TimeStamp", logEvent.Timestamp.DateTime));
+        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("IsAuthenticated", isAuthenticated));
+    }
+
+    private void MaskSensitiveData(JsonNode? node)
+    {
+        if (node is JsonObject obj)
+        {
+            foreach (var prop in obj.ToList())
+            {
+                if (prop.Key.ToLower().Contains("password"))
+                {
+                    obj[prop.Key] = "***";
+                }
+                else
+                {
+                    MaskSensitiveData(prop.Value);
+                }
+            }
+        }
+        else if (node is JsonArray array)
+        {
+            foreach (var item in array)
+            {
+                MaskSensitiveData(item);
+            }
+        }
     }
 }
